@@ -11,5 +11,5 @@ fi
 
 cd ../Robot
 sleep 1
-echo "java theRobot manual 0 &> error.log &"
-java theRobot manual 0 &> error.log &
+echo "java TheRobot manual 0 &> error.log &"
+java TheRobot manual 0 &> error.log &

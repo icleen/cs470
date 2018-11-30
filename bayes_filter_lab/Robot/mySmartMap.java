@@ -14,7 +14,7 @@ import java.net.*;
 
 
 // This class draws the probability map and value iteration map that you create to the window
-// You need only call updateProbs() and updateValues() from your theRobot class to update these maps
+// You need only call updateProbs() and updateValues() from your TheRobot class to update these maps
 class mySmartMap extends JComponent implements KeyListener {
     public static final int NORTH = 0;
     public static final int SOUTH = 1;

@@ -11,10 +11,10 @@ import java.io.*;
 import java.util.Random;
 import java.util.Scanner;
 import java.net.*;
-
+import java.lang.Math;
 
 // This is the main class that you will add to in order to complete the lab
-public class theRobot extends JFrame {
+public class TheRobot extends JFrame {
     // Mapping of actions to integers
     public static final int NORTH = 0;
     public static final int SOUTH = 1;
@@ -46,9 +46,11 @@ public class theRobot extends JFrame {
     double[][] probs;
 
     // store your computed value of being in each state (x, y)
-    double[][] Vs;
+    double[][] values;
+    double gamma = 0.99;
+    int actionNum;
 
-    public theRobot(String _manual, int _decisionDelay) {
+    public TheRobot(String _manual, int _decisionDelay) {
         // initialize variables as specified from the command-line
         if (_manual.equals("automatic"))
             isManual = false;
@@ -56,7 +58,7 @@ public class theRobot extends JFrame {
             isManual = true;
         decisionDelay = _decisionDelay;
 
-        // get a connection to the server and get initial information about the world
+    // get a connection to the server and get initial information about the world
         initClient();
 
         // Read in the world
@@ -75,15 +77,17 @@ public class theRobot extends JFrame {
 
         setVisible(true);
         setTitle("Probability and Value Maps");
-
-        doStuff(); // Function to have the robot move about its world until it gets to its goal or falls in a stairwell
+// Function to have the robot move about its world
+// until it gets to its goal or falls in a stairwell
+        doStuff();
     }
 
     // this function establishes a connection with the server and learns
     //   1 -- which world it is in
     //   2 -- it's transition model (specified by moveProb)
     //   3 -- it's sensor model (specified by sensorAccuracy)
-    //   4 -- whether it's initial position is known.  if known, its position is stored in (startX, startY)
+    //   4 -- whether it's initial position is known.
+    //         if known, its position is stored in (startX, startY)
     public void initClient() {
         int portNumber = 3333;
         String host = "localhost";
@@ -106,7 +110,8 @@ public class theRobot extends JFrame {
                 knownPosition = true;
                 startX = Integer.parseInt(sin.readLine());
                 startY = Integer.parseInt(sin.readLine());
-                System.out.println("Robot's initial position is known: " + startX + ", " + startY);
+                System.out.println("Robot's initial position is known: " +
+                        startX + ", " + startY);
             }
             else {
                 System.out.println("Robot's initial position is unknown");
@@ -305,47 +310,201 @@ public class theRobot extends JFrame {
             for (x = 0; x < mundo.width; x++) {
                 if (mundo.grid[x][y] == 0) {
                     probs[x][y] = bel[x][y] * eta;
-                    if(probs[x][y] > 0.0) {
-                        // System.out.println("prob: " + probs[x][y]);
-                    }
                 }
             }
         }
 
-        myMaps.updateProbs(probs); // call this function after updating your probabilities so that the
-                                   //  new probabilities will show up in the probability map on the GUI
+        myMaps.updateProbs(probs);
+// call this function after updating your probabilities so that the
+//  new probabilities will show up in the probability map on the GUI
+    }
+
+    void valueIteration() {
+        values = new double[mundo.width][mundo.height];
+        int x, y;
+        for (y = 0; y < mundo.height; y++) {
+            for (x = 0; x < mundo.width; x++) {
+                if(mundo.grid[x][y] == 2) {
+                    values[x][y] = -10;
+                }else if(mundo.grid[x][y] == 3) {
+                    values[x][y] = 10;
+                    System.out.println("value, x, y: " + values[x][y] + ", " + x + ", " + y);
+                }
+            }
+        }
+        boolean unstable = true;
+        double u = 0.0, maxU, failProb = (1.0 - moveProb)/3, dif = 0, limit = 1.0;
+        // if(moveProb < 1.0) {
+        //     limit = mundo.height * mundo.width * 0.1;
+        // }
+        // System.out.println("move, fail, limit: " + moveProb + ", " + failProb + ", " + limit);
+        // System.out.println("goal: " + values[13][1]);
+        // while values continue to change
+        while(unstable) {
+            dif = 0.0;
+            // for each state
+            for (y = 0; y < mundo.height; y++) {
+                for (x = 0; x < mundo.width; x++) {
+                    if(mundo.grid[x][y] == 0) {
+
+                        // u = values[x][y] * moveProb;
+                        // u += values[x][y-1] * failProb;
+                        // u += values[x][y+1] * failProb;
+                        // u += values[x-1][y] * failProb;
+                        // u += values[x+1][y] * failProb;
+                        // maxU = u;
+                        // u = values[x][y] * failProb;
+                        u = 0.0;
+                        u += values[x][y-1] * moveProb;
+                        u += values[x][y+1] * failProb;
+                        u += values[x-1][y] * failProb;
+                        u += values[x+1][y] * failProb;
+                        // if(mundo.grid[x][y-1] == 1) {
+                        //     u += values[x][y] * moveProb;
+                        // }
+                        maxU = u;
+                        // u = values[x][y] * failProb;
+                        u = 0.0;
+                        u += values[x][y-1] * failProb;
+                        u += values[x][y+1] * moveProb;
+                        u += values[x-1][y] * failProb;
+                        u += values[x+1][y] * failProb;
+                        // if(mundo.grid[x][y+1] == 1) {
+                        //     u += values[x][y] * moveProb;
+                        // }
+                        if(u > maxU) {
+                            maxU = u;
+                        }
+                        // u = values[x][y] * failProb;
+                        u = 0.0;
+                        u += values[x][y-1] * failProb;
+                        u += values[x][y+1] * failProb;
+                        u += values[x-1][y] * moveProb;
+                        u += values[x+1][y] * failProb;
+                        // if(mundo.grid[x-1][y] == 1) {
+                        //     u += values[x][y] * moveProb;
+                        // }
+                        if(u > maxU) {
+                            maxU = u;
+                        }
+                        // u = values[x][y] * failProb;
+                        u = 0.0;
+                        u += values[x][y-1] * failProb;
+                        u += values[x][y+1] * failProb;
+                        u += values[x-1][y] * failProb;
+                        u += values[x+1][y] * moveProb;
+                        // if(mundo.grid[x+1][y] == 1) {
+                        //     u += values[x][y] * moveProb;
+                        // }
+                        if(u > maxU) {
+                            maxU = u;
+                        }
+                        // if(x == 12 && y == 1) {
+                        //     System.out.println("info: " + maxU + ", " + u + ", "  + values[x+1][y]);
+                        //     System.out.println("above: " + values[x][y-1] + ", " + (values[x][y-1] * moveProb));
+                        // }
+                        u = gamma * maxU;
+                        dif += Math.abs(values[x][y] - u);
+                        // if(Double.isNaN(dif)) {
+                        //     System.out.println("Nan: maxU - " + maxU);
+                        //     return;
+                        // }
+                        // if(x == 12 && y == 1) {
+                        //     System.out.println("info: " + maxU + ", " + u + ", "  + dif + ", "  + values[x][y]);
+                        // }
+                        values[x][y] = u;
+                    }
+                }
+            } // end loop over states
+            if(dif < limit) {
+                unstable = false;
+            }else {
+                System.out.println("Dif: " + dif);
+            }
+        }// end while
+        myMaps.updateValues(values);
+        return;
+    }
+
+    int algorithm2() {
+        ++actionNum;
+        if(actionNum < 10) {
+            return STAY;
+        }
+
+        double maxP = 0, maxV = 0;
+        int x, y, maxx = 1, maxy = 1;
+        for (y = 0; y < mundo.height; y++) {
+            for (x = 0; x < mundo.width; x++) {
+                if (mundo.grid[x][y] == 0) {
+                    if(probs[x][y] > maxP) {
+                        maxP = probs[x][y];
+                        maxx = x;
+                        maxy = y;
+                    }
+                }
+            }
+        }
+        int action = STAY;
+        if(values[maxx][maxy-1] > maxV) {
+            maxV = values[maxx][maxy-1];
+            action = NORTH;
+        }if(values[maxx][maxy+1] > maxV) {
+            maxV = values[maxx][maxy+1];
+            action = SOUTH;
+        }if(values[maxx-1][maxy] > maxV) {
+            maxV = values[maxx-1][maxy];
+            action = WEST;
+        }if(values[maxx+1][maxy] > maxV) {
+            maxV = values[maxx+1][maxy];
+            action = EAST;
+        }
+        return action;
     }
 
     // This is the function you'd need to write to make the robot move using your AI;
-    // You do NOT need to write this function for this lab; it can remain as is
     int automaticAction() {
+        if(false) {
+            return algorithm2();
+        }
+        int ax = 0, ay = -1, x, y;
+        // for each state find the utility of the action
+        for (y = 0; y < mundo.height; y++) {
+            for (x = 0; x < mundo.width; x++) {
+                if (mundo.grid[x][y] == 0) {
 
-        return STAY;  // default action for now
+                }
+            }
+        }
+
+        return STAY;
     }
 
     void doStuff() {
         int action;
-
-        //valueIteration();  // TODO: function you will write in Part II of the lab
         initializeProbabilities();  // Initializes the location (probability) map
+        System.out.println("finding values");
+        valueIteration();
+        actionNum = 0;
+        System.out.println("finished values");
 
         while (true) {
             try {
                 if (isManual)
-                    action = getHumanAction();  // get the action selected by the user (from the keyboard)
+                    action = getHumanAction();
+                    // get the action selected by the user (from the keyboard)
                 else
-                    action = automaticAction(); // TODO: get the action selected by your AI;
-                                                // you'll need to write this function for part III
+                    action = automaticAction();
+                    // get the action selected by your AI;
 
                 sout.println(action); // send the action to the Server
 
                 // get sonar readings after the robot moves
                 String sonars = sin.readLine();
-                System.out.println("Sonars: " + sonars);
+                // System.out.println("Sonars: " + sonars);
 
-                updateProbabilities(action, sonars); // TODO: this function should update the probabilities of where the AI thinks it is
-
-                if (sonars.length() > 4) {  // check to see if the robot has reached its goal or fallen down stairs
+                // check to see if the robot has reached its goal or fallen down stairs
+                if (sonars.length() > 4) {
                     if (sonars.charAt(4) == 'w') {
                         System.out.println("I won!");
                         myMaps.setWin();
@@ -361,9 +520,12 @@ public class theRobot extends JFrame {
                     // here, you'll want to update the position probabilities
                     // since you know that the result of the move indicates the robot
                     // is not at the goal or in a stairwell
+                    updateProbabilities(action, sonars);
                 }
-                Thread.sleep(decisionDelay);  // delay that is useful to see what is happening when the AI selects actions
-                                              // decisionDelay is specified by the send command-line argument, which is given in milliseconds
+                Thread.sleep(decisionDelay);
+// delay that is useful to see what is happening when the AI selects actions
+// decisionDelay is specified by the send command-line argument,
+// which is given in milliseconds
             }
             catch (IOException e) {
                 System.out.println(e);
@@ -374,8 +536,9 @@ public class theRobot extends JFrame {
         }
     }
 
-    // java theRobot [manual/automatic] [delay]
+    // java TheRobot [manual/automatic] [delay]
     public static void main(String[] args) {
-        theRobot robot = new theRobot(args[0], Integer.parseInt(args[1]));  // starts up the robot
+        TheRobot robot = new TheRobot(args[0], Integer.parseInt(args[1]));
+        // starts up the robot
     }
 }
