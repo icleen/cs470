@@ -175,7 +175,7 @@ public class TheRobot extends JFrame {
     }
 
     double s_given_prev(int x, int y, int action, double[][] priors) {
-        double prob = 0.0, failProb = (1 - moveProb);
+        double prob = 0.0, failProb = (1 - moveProb)/3;
 
         switch (action) {
         case 0:
@@ -330,15 +330,16 @@ public class TheRobot extends JFrame {
                     values[x][y] = 10;
                     System.out.println("value, x, y: " + values[x][y] + ", " + x + ", " + y);
                 }
+                // else if(mundo.grid[x][y] == 1)  {
+                //     values[x][y] = -1;
+                // }
             }
         }
         boolean unstable = true;
-        double u = 0.0, maxU, failProb = (1.0 - moveProb)/3, dif = 0, limit = 1.0;
+        double u = 0.0, maxU, failProb = (1.0 - moveProb)/3, dif = 0, limit = 0.5;
         // if(moveProb < 1.0) {
         //     limit = mundo.height * mundo.width * 0.1;
         // }
-        // System.out.println("move, fail, limit: " + moveProb + ", " + failProb + ", " + limit);
-        // System.out.println("goal: " + values[13][1]);
         // while values continue to change
         while(unstable) {
             dif = 0.0;
@@ -346,72 +347,38 @@ public class TheRobot extends JFrame {
             for (y = 0; y < mundo.height; y++) {
                 for (x = 0; x < mundo.width; x++) {
                     if(mundo.grid[x][y] == 0) {
-
-                        // u = values[x][y] * moveProb;
-                        // u += values[x][y-1] * failProb;
-                        // u += values[x][y+1] * failProb;
-                        // u += values[x-1][y] * failProb;
-                        // u += values[x+1][y] * failProb;
-                        // maxU = u;
-                        // u = values[x][y] * failProb;
                         u = 0.0;
                         u += values[x][y-1] * moveProb;
                         u += values[x][y+1] * failProb;
                         u += values[x-1][y] * failProb;
                         u += values[x+1][y] * failProb;
-                        // if(mundo.grid[x][y-1] == 1) {
-                        //     u += values[x][y] * moveProb;
-                        // }
                         maxU = u;
-                        // u = values[x][y] * failProb;
                         u = 0.0;
                         u += values[x][y-1] * failProb;
                         u += values[x][y+1] * moveProb;
                         u += values[x-1][y] * failProb;
                         u += values[x+1][y] * failProb;
-                        // if(mundo.grid[x][y+1] == 1) {
-                        //     u += values[x][y] * moveProb;
-                        // }
                         if(u > maxU) {
                             maxU = u;
                         }
-                        // u = values[x][y] * failProb;
                         u = 0.0;
                         u += values[x][y-1] * failProb;
                         u += values[x][y+1] * failProb;
                         u += values[x-1][y] * moveProb;
                         u += values[x+1][y] * failProb;
-                        // if(mundo.grid[x-1][y] == 1) {
-                        //     u += values[x][y] * moveProb;
-                        // }
                         if(u > maxU) {
                             maxU = u;
                         }
-                        // u = values[x][y] * failProb;
                         u = 0.0;
                         u += values[x][y-1] * failProb;
                         u += values[x][y+1] * failProb;
                         u += values[x-1][y] * failProb;
                         u += values[x+1][y] * moveProb;
-                        // if(mundo.grid[x+1][y] == 1) {
-                        //     u += values[x][y] * moveProb;
-                        // }
                         if(u > maxU) {
                             maxU = u;
                         }
-                        // if(x == 12 && y == 1) {
-                        //     System.out.println("info: " + maxU + ", " + u + ", "  + values[x+1][y]);
-                        //     System.out.println("above: " + values[x][y-1] + ", " + (values[x][y-1] * moveProb));
-                        // }
                         u = gamma * maxU;
                         dif += Math.abs(values[x][y] - u);
-                        // if(Double.isNaN(dif)) {
-                        //     System.out.println("Nan: maxU - " + maxU);
-                        //     return;
-                        // }
-                        // if(x == 12 && y == 1) {
-                        //     System.out.println("info: " + maxU + ", " + u + ", "  + dif + ", "  + values[x][y]);
-                        // }
                         values[x][y] = u;
                     }
                 }
@@ -462,22 +429,97 @@ public class TheRobot extends JFrame {
         return action;
     }
 
-    // This is the function you'd need to write to make the robot move using your AI;
-    int automaticAction() {
-        if(false) {
-            return algorithm2();
+    double util(int action, double bonus) {
+        int ax, ay, x, y;
+        switch (action) {
+        case NORTH:
+            ax = 0;
+            ay = -1;
+            break;
+        case SOUTH:
+            ax = 0;
+            ay = 1;
+            break;
+        case EAST:
+            ax = 1;
+            ay = 0;
+            break;
+        case WEST:
+            ax = -1;
+            ay = 0;
+            break;
+        default:
+            ax = 0;
+            ay = 0;
         }
-        int ax = 0, ay = -1, x, y;
-        // for each state find the utility of the action
+        double usum = 0.0;
         for (y = 0; y < mundo.height; y++) {
             for (x = 0; x < mundo.width; x++) {
                 if (mundo.grid[x][y] == 0) {
-
+                    usum += probs[x][y] * values[x+ax][y+ay];
+                    if(mundo.grid[x+ax][y+ay] == 1) {
+                        usum += bonus * values[x][y];
+                    }
                 }
             }
         }
+        return usum;
+    }
 
-        return STAY;
+    double probDist() {
+        int x, y, cnt = 0;
+        double hi = 0.0, avg = 0.0;
+        for (y = 0; y < mundo.height; y++) {
+            for (x = 0; x < mundo.width; x++) {
+                if (mundo.grid[x][y] == 0) {
+                    avg += probs[x][y];
+                    cnt += 1;
+                    if(probs[x][y] > hi) {
+                        hi = probs[x][y];
+                    }
+                }
+            }
+        }
+        // avg /= (double) cnt;
+        // return 1 - (avg / hi);
+        avg -= hi;
+        return Math.min(0.0, avg-hi);
+    }
+
+    // This is the function you'd need to write to make the robot move using your AI;
+    int automaticAction() {
+        int a, maxA = 0;
+        double u, uMax = -100, bonus = 0.0;
+        if(false) {
+            ++actionNum;
+            if(actionNum < 5) {
+                return STAY;
+            }else if(actionNum == 5) {
+                return NORTH;
+            }else if(actionNum == 6) {
+                return EAST;
+            }else if(actionNum == 7) {
+                return SOUTH;
+            }else if(actionNum == 8) {
+                return WEST;
+            }
+            Random rand = new Random();
+            bonus = probDist();
+            if(rand.nextDouble() > bonus) {
+                bonus = 0.0;
+            }
+        }
+
+        // for each state find the utility of the action
+        for(a = 0; a < 4; ++a) {
+            u = util(a, bonus);
+            if(u > uMax) {
+                uMax = u;
+                maxA = a;
+            }
+        }
+
+        return maxA;
     }
 
     void doStuff() {

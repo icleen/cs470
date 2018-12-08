@@ -1,0 +1,23 @@
+{
+  "train": {
+    "epochs": 1000,
+    "policy_epochs": 5,
+    "gamma": 0.99,
+    "epsilon": 0.2,
+    "env_samples": 200,
+    "lr": 0.0001,
+    "weight_decay": 0.001
+  },
+  "test": {
+    "iters": 1000
+  },
+  "model": {
+    "layers": 3,
+    "conv_size": 64,
+    "logheat": 10.0,
+    "write_interval": 1,
+    "trainer_save_path": "networks/reversi2_data.pt",
+    "policy_save_path": "networks/reversi2_net.pt",
+    "graph_save_path": "networks/reversi2_graph.png"
+  }
+}
