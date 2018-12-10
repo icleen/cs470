@@ -35,3 +35,6 @@ def moves_from_tuples(moves, size):
   for mov in moves:
     actions[mov[0]*size+mov[1]] = 1
   return actions
+
+def prepare_game(game):
+  return prepare_board(game.get_state(), game.get_turn())

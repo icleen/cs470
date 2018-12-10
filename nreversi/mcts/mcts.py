@@ -3,7 +3,7 @@ import numpy as np
 from random import randint
 import copy
 
-from board import Board
+from game import Othello
 from utils import *
 
 class MCTS(object):
@@ -21,38 +21,36 @@ class MCTS(object):
     self.scores = {}
 
 
-  def get_action(self, board, turn):
-    moves = board.get_moves(turn)
-    probs = self.get_probabilities(board, turn)
-    actions = moves_from_tuples(moves, self.n)
+  def get_action(self, game):
+    actions = game.get_actions()
+    probs = self.get_probabilities(game)
     act = sample(probs, actions)
     return act
 
-  def get_probabilities(self, board, turn):
+  def get_probabilities(self, game):
     for _ in range(self.runs):
-      self.search(copy.deepcopy(board), turn)
+      self.search(copy.deepcopy(game))
 
     probs = np.ones((self.size))
     if self.network is not None:
-      probs = self.network(prepare_board(board, turn))
+      probs = self.network(prepare_game(game))
       probs = probs.squeeze().cpu().detach().numpy()
 
-    bhash = board.hash()
-    qs = (self.qs[bhash] * self.ns[bhash] * turn)
+    bhash = game.hash()
+    qs = (self.qs[bhash] * self.ns[bhash] * game.get_turn())
     if np.min(qs) < 0:
       qs = qs - np.min(qs)
     qs = qs / np.sum(qs)
     probs = probs * qs
 
-    return probs
+    return probs / np.sum(probs)
 
-  def search(self, board, turn):
-    moves = board.get_moves(turn)
-    bhash = board.hash()
+  def search(self, game):
+    bhash = game.hash()
     if bhash not in self.vs:
       self.vs[bhash] = 0
-    if len(moves) < 1:
-      self.vs[bhash] += board.get_winner()
+    if game.game_over():
+      self.vs[bhash] += game.get_winner()
     else:
       if bhash not in self.qs:
         self.qs[bhash] = np.zeros((self.size))
@@ -61,22 +59,39 @@ class MCTS(object):
 
       probs = np.ones((self.size))
       if self.network is not None:
-        probs = self.network(prepare_board(board, turn))
+        probs = self.network(prepare_game(game))
         probs = probs.squeeze().cpu().detach().numpy()
 
-      qs = (self.qs[bhash] * self.ns[bhash] * turn)
+      qs = (self.qs[bhash] * self.ns[bhash] * game.get_turn())
       if np.min(qs) < 0:
         qs = qs - np.min(qs)
       qs = qs / np.sum(qs)
       probs = probs * qs
 
-      actions = moves_from_tuples(moves, self.n)
+      actions = game.get_actions()
       act = sample(probs, actions)
 
-      board.move(moves[act], turn)
-      v = self.search(board, turn*-1)
+      game.move(act)
+      v = self.search(game)
       self.vs[bhash] += v
       self.qs[bhash][act] += v
       self.ns[bhash][act] += 1
 
     return self.vs[bhash]
+
+def main():
+  mcts = MCTS()
+  game = Othello()
+
+  for i in range(5):
+    action = mcts.get_action(game)
+    game.move(action)
+    print(game.get_true_state())
+    if game.game_over():
+      break
+
+  print('game over')
+
+
+if __name__ == '__main__':
+  main()
