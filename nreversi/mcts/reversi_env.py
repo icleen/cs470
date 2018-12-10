@@ -2,56 +2,40 @@
 import numpy as np
 from random import randint
 
-from board import Board
+from game import Othello
 from utils import *
 
 class ReversiEnv(object):
   """docstring for ReversiEnv."""
   def __init__(self):
     super(ReversiEnv, self).__init__()
-    self.turn = 1
-    self.moves = 0
     self.n = 8
 
   def length(self):
     return self.n*self.n
 
   def reset(self):
-    self.board = Board()
-    return self.board.get_state(), 1
+    self.game = Othello()
+    return self.game.get_state(), self.game.get_turn()
 
   def action_space(self):
-    moves = self.board.get_moves(self.turn)
-    actions = np.zeros(self.n*self.n)
-    if len(moves) <= 0:
-      return 0
-    for mov in moves:
-      actions[mov[0]*self.n+mov[1]] = 1
-    return actions
+    return self.game.get_actions()
 
   def step(self, action):
-    # print(((action//self.n), (action%self.n)))
-    over = self.board.move(((action//self.n), (action%self.n)), self.turn)
-    self.moves += 1
-    self.turn *= -1
-    reward = 0
-    if over:
-      if self.board.sum() < 0:
-        reward = -1
-      elif self.board.sum() > 0:
-        reward = 1
-    return self.board.get_state(), self.turn, reward, over
+    over = self.game.move(action)
+    reward = self.game.get_winner()
+    return self.game.get_state(), self.game.get_turn(), reward, over
 
 
 def main():
   env = ReversiEnv()
-  state = env.reset()
+  state, turn = env.reset()
   print(state)
   actions = env.action_space()
   print(actions)
 
   for i in range(64):
-    if len(actions) <= 0:
+    if len(actions) < 1:
       print(state)
     probs = np.ones(actions.shape[0])
     action = sample(probs, actions)

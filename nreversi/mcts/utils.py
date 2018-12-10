@@ -26,3 +26,12 @@ def _prepare_numpy(ndarray, device):
 
 def _prepare_tensor_batch(tensor, device):
     return tensor.detach().float().to(device)
+
+def prepare_board(board, turn):
+  return torch.FloatTensor(board*turn).unsqueeze(0).unsqueeze(0)
+
+def moves_from_tuples(moves, size):
+  actions = np.zeros(size*size)
+  for mov in moves:
+    actions[mov[0]*size+mov[1]] = 1
+  return actions

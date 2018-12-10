@@ -7,12 +7,10 @@ class Board(object):
     super(Board, self).__init__()
 
     self.board = np.zeros((8, 8), dtype=np.int)
-    self.movenum = 0
-    self.maxturns = 8 * 8
 
-  def get_moves(self, player):
+  def get_moves(self, player, movenum):
     moves = []
-    if (self.movenum < 4):
+    if (movenum < 4):
       if (self.board[3,3] == 0):
         moves.append((3, 3))
       if (self.board[3,4] == 0):
@@ -70,12 +68,7 @@ class Board(object):
           self.ch_direction(
             location[0], location[1], incx, incy, player, True)
     self.board[location] = player
-    self.movenum += 1
-    moves = self.get_moves(player*-1)
-    if len(moves) <= 0 or self.movenum >= self.maxturns:
-      return True
-    else:
-      return False
+    return True
 
   def get_state(self):
     return self.board
@@ -86,24 +79,32 @@ class Board(object):
   def sum(self):
     return np.sum(self.board)
 
+  def hash(self):
+    return np.array2string(self.board)
+
 
 def main():
   board = Board()
 
-  for i in range(30):
-    moves = board.get_moves(1)
-    # print(moves)
+  for i in range(10):
+    moves = board.get_moves(1, i)
+    print(moves)
     if len(moves) <= 0:
+      print('no moves')
       return
     loc = randint(0, len(moves) - 1)
     board.move(moves[loc], 1)
-    # print('end p1')
+    print(board.get_state())
+    print('end p1')
 
-    moves = board.get_moves(-1)
-    # print(moves)
+    moves = board.get_moves(-1, i)
+    print(moves)
     loc = randint(0, len(moves) - 1)
     board.move(moves[loc], -1)
-    # print('end p2')
+    print(board.get_state())
+    print('end p2')
+
+  print(board.get_state())
 
 
 if __name__ == '__main__':
