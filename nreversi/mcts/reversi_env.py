@@ -22,9 +22,9 @@ class ReversiEnv(object):
     return self.game.get_actions()
 
   def step(self, action):
-    over = self.game.move(action)
+    self.game.move(action)
     reward = self.game.get_winner()
-    return self.game.get_state(), self.game.get_turn(), reward, over
+    return self.game.get_state(), self.game.get_turn(), reward
 
 
 def main():
@@ -33,6 +33,7 @@ def main():
   print(state)
   actions = env.action_space()
   print(actions)
+  done = False
 
   for i in range(64):
     if len(actions) < 1:
@@ -40,8 +41,10 @@ def main():
     probs = np.ones(actions.shape[0])
     action = sample(probs, actions)
     # print(action)
-    state, turn, reward, done = env.step(action)
+    state, turn, reward = env.step(action)
     actions = env.action_space()
+    if reward != 0:
+      done = True
     # print('end p1')
     if done:
       break

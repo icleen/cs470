@@ -42,8 +42,10 @@ class RolloutFactory(object):
       probs, _ = self.policy_net(in_state)
       probs = probs.squeeze().cpu().detach().numpy()
       action = sample(probs, actions)
-      s_prime, t_prime, reward, done = env.step(action)
+      s_prime, t_prime, reward = env.step(action)
       actions = env.action_space()
+      if reward != 0:
+        done = True
 
       rollout.append([state, turn, probs])
       state, turn = s_prime, t_prime

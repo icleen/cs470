@@ -21,7 +21,7 @@ class Othello(object):
       self.board.move( ((action//self.n), (action%self.n)), self.turn )
       self.movenum += 1
       self.turn *= -1
-      return self.game_over()
+      return True
     else:
       print('invalid move!')
       return False

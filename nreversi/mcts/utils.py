@@ -3,11 +3,14 @@ import numpy as np
 
 def sample(dist, actions):
   # zero out invalid actions
-  dist = dist * actions
+  probs = dist * actions
+  if probs.sum() == 0:
+    print(actions)
+    print(dist)
   # normalize
-  dist = dist / dist.sum()
+  probs = probs / probs.sum()
   # random sample
-  action = np.random.choice(dist.shape[0], p=dist)
+  action = np.random.choice(probs.shape[0], p=probs)
   return action
 
 def loss_pi(targets, outputs):
